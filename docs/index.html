@@ -59,8 +59,26 @@ nav {
   font-size: 18px;
   color: var(--green);
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .nav-brand span { color: var(--text-muted); font-weight: 400; }
+.nav-org {
+  font-size: 11px;
+  font-weight: 500;
+  color: #c7d2fe;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  padding: 2px 8px;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+.nav-org:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+}
 .nav-links { display: flex; gap: 24px; list-style: none; }
 .nav-links a {
   color: var(--text-muted);
@@ -545,10 +563,44 @@ section {
   border-color: var(--text-muted);
 }
 
+/* ─── Bang Labs badge ─── */
+.hero-org-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+.hero-org-badge:hover {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+.hero-org-badge .org-name {
+  font-size: 14px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #c7d2fe, #6366f1, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-org-badge .org-sep {
+  color: rgba(99, 102, 241, 0.4);
+  font-size: 14px;
+}
+.hero-org-badge .org-project {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 /* ─── Footer ─── */
 footer {
   border-top: 1px solid var(--border);
-  padding: 32px 24px;
+  padding: 40px 24px;
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
@@ -558,13 +610,29 @@ footer a {
   text-decoration: none;
 }
 footer a:hover { text-decoration: underline; }
+.footer-brand {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, #c7d2fe, #6366f1, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
+}
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+}
 </style>
 </head>
 <body>
 
 <!-- ─── Navigation ─── -->
 <nav>
-  <a href="#hero" class="nav-brand">&gt;_ snippets<span>.cli</span></a>
+  <div class="nav-brand"><a href="#hero" style="color:inherit;text-decoration:none">&gt;_ snippets<span>.cli</span></a> <a href="https://bang-labs.eu" class="nav-org" target="_blank" rel="noopener">Bang Labs</a></div>
   <button class="hamburger" aria-label="Menu">&#9776;</button>
   <ul class="nav-links">
     <li><a href="#hero">Try It</a></li>
@@ -579,6 +647,11 @@ footer a:hover { text-decoration: underline; }
 <!-- ─── Hero + Terminal ─── -->
 <section id="hero">
   <div class="fade-in">
+    <a href="https://bang-labs.eu" class="hero-org-badge" target="_blank" rel="noopener">
+      <span class="org-name">Bang Labs</span>
+      <span class="org-sep">/</span>
+      <span class="org-project">snippets-cli</span>
+    </a>
     <h1 class="hero-title">Note-taking for your terminal</h1>
     <p class="hero-subtitle">A PostgreSQL-backed REPL for capturing Markdown snippets with source citations, tags, locator references, and structured export.</p>
   </div>
@@ -745,7 +818,7 @@ footer a:hover { text-decoration: underline; }
         <p>Clone the repository and install Python dependencies in a virtual environment.</p>
         <div class="code-block">
           <button class="copy-btn" data-copy="clone-install">Copy</button>
-          <pre id="clone-install">git clone https://github.com/yourusername/snippets-cli.git
+          <pre id="clone-install">git clone https://github.com/banglabs-eu/snippets-cli.git
 cd snippets-cli
 python -m venv .venv
 source .venv/bin/activate
@@ -787,10 +860,13 @@ EXPORT_DIR=./exports</pre>
 
 <!-- ─── Footer ─── -->
 <footer>
-  <p>MIT License &copy; 2026 Adam Bang Kjems</p>
-  <p style="margin-top: 8px;">
-    <a href="https://github.com/yourusername/snippets-cli">GitHub</a>
-  </p>
+  <a href="https://bang-labs.eu" class="footer-brand" target="_blank" rel="noopener">Bang Labs</a>
+  <p>Open source projects. Built in public. Contributions welcome.</p>
+  <p style="margin-top: 6px;">MIT License &copy; 2026 Adam Bang Kjems</p>
+  <div class="footer-links">
+    <a href="https://github.com/banglabs-eu/snippets-cli">GitHub</a>
+    <a href="https://bang-labs.eu" target="_blank" rel="noopener">bang-labs.eu</a>
+  </div>
 </footer>
 
 <!-- ─── JavaScript ─── -->
