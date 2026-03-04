@@ -25,7 +25,7 @@ from completers import ReplCompleter
 
 load_dotenv()
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:5000")
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 EXPORT_DIR = os.environ.get("EXPORT_DIR", "./exports")
 
 
