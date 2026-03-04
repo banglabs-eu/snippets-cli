@@ -128,7 +128,7 @@ _AUTHOR_CMDS = {"va"}
 
 _CMDS_UNAUTH = ["help", "login", "register", "exit", "quit"]
 _CMDS_AUTH = _CMDS_UNAUTH + [
-    "logout", "change_password", "passwd", "whoami",
+    "logout", "change_password", "passwd", "whoami", "invite", "invites",
     "s", "t", "ns", "nse", "vs", "vt", "va", "stadd", "del",
     "find", "f", "e", "edit", "b", "browse", "ls",
 ]

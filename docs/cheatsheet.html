@@ -203,6 +203,18 @@ code, .mono {
         <td class="cmd-syntax">&lt;text&gt;</td>
         <td class="cmd-desc">Just type &mdash; any unrecognized input is saved as a note<span class="cmd-example">The cave allegory is profound p514</span></td>
       </tr>
+      <tr>
+        <td class="cmd-syntax">e / edit &lt;id&gt;</td>
+        <td class="cmd-desc">Edit a note inline (arrow keys to modify, Enter to save)<span class="cmd-example">e 1</span></td>
+      </tr>
+      <tr>
+        <td class="cmd-syntax">del &lt;id&gt;</td>
+        <td class="cmd-desc">Delete a note by ID<span class="cmd-example">del 5</span></td>
+      </tr>
+      <tr>
+        <td class="cmd-syntax">find / f &lt;query&gt;</td>
+        <td class="cmd-desc">Search notes by text (case-insensitive)<span class="cmd-example">find cave allegory</span></td>
+      </tr>
     </table>
   </div>
 
@@ -279,10 +291,38 @@ code, .mono {
     </table>
   </div>
 
-  <!-- System -->
+  <!-- System & Auth -->
   <div class="section">
-    <h2 class="cat-system">System</h2>
+    <h2 class="cat-system">System &amp; Auth</h2>
     <table class="cmd-table">
+      <tr>
+        <td class="cmd-syntax">login</td>
+        <td class="cmd-desc">Log in to your account</td>
+      </tr>
+      <tr>
+        <td class="cmd-syntax">register</td>
+        <td class="cmd-desc">Create a new account (requires invite code)</td>
+      </tr>
+      <tr>
+        <td class="cmd-syntax">logout</td>
+        <td class="cmd-desc">Log out and clear saved token</td>
+      </tr>
+      <tr>
+        <td class="cmd-syntax">whoami</td>
+        <td class="cmd-desc">Show current logged-in username</td>
+      </tr>
+      <tr>
+        <td class="cmd-syntax">passwd</td>
+        <td class="cmd-desc">Change your password (also: change_password)</td>
+      </tr>
+      <tr>
+        <td class="cmd-syntax">invite</td>
+        <td class="cmd-desc">Generate an invite code (admin only)</td>
+      </tr>
+      <tr>
+        <td class="cmd-syntax">invites</td>
+        <td class="cmd-desc">List all invite codes (admin only)</td>
+      </tr>
       <tr>
         <td class="cmd-syntax">help</td>
         <td class="cmd-desc">Show all available commands</td>
@@ -326,6 +366,10 @@ code, .mono {
   <div class="section">
     <h2 class="cat-autocomplete">Tab Completion</h2>
     <table class="ref-table">
+      <tr>
+        <td class="mono">&lt;Tab&gt;</td>
+        <td class="desc">Command names (auth-aware)</td>
+      </tr>
       <tr>
         <td class="mono">s &lt;Tab&gt;</td>
         <td class="desc">Source names</td>

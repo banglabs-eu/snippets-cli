@@ -91,8 +91,11 @@ def _check(response: httpx.Response) -> httpx.Response:
 
 # --- Auth ---
 
-def register(username: str, password: str) -> dict:
-    r = _get().post("/register", json={"username": username, "password": password})
+def register(username: str, password: str, invite_code: str = "") -> dict:
+    payload = {"username": username, "password": password}
+    if invite_code:
+        payload["invite_code"] = invite_code
+    r = _get().post("/register", json=payload)
     if r.status_code == 409:
         raise ConflictError("Username already taken")
     if r.status_code == 400:
@@ -101,6 +104,16 @@ def register(username: str, password: str) -> dict:
     data = r.json()
     save_token(data["token"])
     return data
+
+
+def create_invite_code() -> str:
+    r = _check(_get().post("/invite-codes", headers=_headers()))
+    return r.json()["code"]
+
+
+def list_invite_codes() -> list[dict]:
+    r = _check(_get().get("/invite-codes", headers=_headers()))
+    return r.json()
 
 
 def change_password(current_password: str, new_password: str):

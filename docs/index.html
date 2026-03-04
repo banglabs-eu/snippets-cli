@@ -717,7 +717,22 @@ footer a:hover { text-decoration: underline; }
     <div class="feature-card fade-in">
       <span class="feature-icon">&#8677;</span>
       <h3>Tab Completion</h3>
-      <p>Context-aware autocomplete for sources, tags, authors, and more. The REPL knows what you need.</p>
+      <p>Context-aware autocomplete for commands, sources, tags, authors, and more. The REPL knows what you need.</p>
+    </div>
+    <div class="feature-card fade-in">
+      <span class="feature-icon">&#128269;</span>
+      <h3>Full-text Search</h3>
+      <p>Find notes by content with <code>find</code> or <code>f</code>. Results render as Markdown and open in your pager.</p>
+    </div>
+    <div class="feature-card fade-in">
+      <span class="feature-icon">&#9999;</span>
+      <h3>Inline Editing</h3>
+      <p>Edit any note in place with <code>e &lt;id&gt;</code>. Arrow keys to navigate, Enter to save. Tracks last-edited timestamps.</p>
+    </div>
+    <div class="feature-card fade-in">
+      <span class="feature-icon">&#128274;</span>
+      <h3>Multi-user Auth</h3>
+      <p>JWT login with invite-code registration. Per-user data isolation, password changes, and admin invite management.</p>
     </div>
   </div>
 </section>
@@ -892,6 +907,9 @@ EXPORT_DIR=./exports</pre>
    ═══════════════════════════════════════════ */
 const COMMANDS = [
   { syntax: '<text>', desc: 'Just type — any unrecognized input is saved as a note', category: 'notes', example: 'Knowledge is justified true belief p42' },
+  { syntax: 'e / edit <id>', desc: 'Edit a note inline (arrow keys to modify, Enter to save)', category: 'notes', example: 'e 1' },
+  { syntax: 'del <id>', desc: 'Delete a note by ID', category: 'notes', example: 'del 5' },
+  { syntax: 'find / f <query>', desc: 'Search notes by text (case-insensitive)', category: 'notes', example: 'find cave allegory' },
   { syntax: 's <name_or_id>', desc: 'Set session source (Tab to autocomplete)', category: 'sources', example: 's The Republic' },
   { syntax: 's', desc: 'Show current source and citation', category: 'sources', example: 's' },
   { syntax: 's clear', desc: 'Unset source — future notes have no source', category: 'sources', example: 's clear' },
@@ -905,6 +923,13 @@ const COMMANDS = [
   { syntax: 'va <Last, First>', desc: 'View/export notes by author', category: 'viewing', example: 'va Plato' },
   { syntax: 'b', desc: 'Browse all notes (rendered Markdown)', category: 'viewing', example: 'b' },
   { syntax: 'stadd <name>', desc: 'Add a new source type', category: 'system', example: 'stadd Podcast' },
+  { syntax: 'login', desc: 'Log in to your account', category: 'system', example: 'login' },
+  { syntax: 'register', desc: 'Create a new account (requires invite code)', category: 'system', example: 'register' },
+  { syntax: 'logout', desc: 'Log out and clear saved token', category: 'system', example: 'logout' },
+  { syntax: 'whoami', desc: 'Show current logged-in username', category: 'system', example: 'whoami' },
+  { syntax: 'change_password', desc: 'Change your password (alias: passwd)', category: 'system', example: 'passwd' },
+  { syntax: 'invite', desc: 'Generate an invite code (admin only)', category: 'system', example: 'invite' },
+  { syntax: 'invites', desc: 'List all invite codes (admin only)', category: 'system', example: 'invites' },
   { syntax: 'help', desc: 'Show all available commands', category: 'system', example: 'help' },
   { syntax: 'exit', desc: 'Quit the REPL', category: 'system', example: 'exit' },
 ];

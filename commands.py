@@ -68,6 +68,8 @@ Commands:
   logout             Log out (clear saved token)
   change_password    Change your password (alias: passwd)
   whoami             Show current logged-in username
+  invite             Generate an invite code (admin only)
+  invites            List all invite codes (admin only)
   <text>             Just type — any unrecognized input is saved as a note
   s <name_or_id>     Set session source (Tab to autocomplete)
   s clear            Unset source — future notes have no source
@@ -495,6 +497,7 @@ def cmd_register(session: Session):
         username = input("Choose username: ").strip()
         password = getpass.getpass("Choose password (min 6 chars): ")
         confirm = getpass.getpass("Confirm password: ")
+        invite_code = input("Invite code: ").strip()
     except (EOFError, KeyboardInterrupt):
         print("\nCancelled.")
         return
@@ -505,7 +508,7 @@ def cmd_register(session: Session):
         print("Passwords do not match.")
         return
     try:
-        data = client.register(username, password)
+        data = client.register(username, password, invite_code)
         session.reset()
         print(f"Registered and logged in as {data['username']}.")
     except client.ConflictError:
@@ -533,6 +536,37 @@ def cmd_change_password():
         print("Password changed successfully.")
     except ValueError as e:
         print(f"Failed: {e}")
+
+
+def cmd_invite():
+    try:
+        code = client.create_invite_code()
+        print(f"Invite code: {code}")
+    except client.BackendError:
+        print("Failed to create invite code.")
+    except Exception as e:
+        detail = str(e)
+        if "403" in detail:
+            print("Only the invite admin can create invite codes.")
+        else:
+            raise
+
+
+def cmd_invites():
+    try:
+        codes = client.list_invite_codes()
+    except Exception as e:
+        detail = str(e)
+        if "403" in detail:
+            print("Only the invite admin can view invite codes.")
+            return
+        raise
+    if not codes:
+        print("No invite codes yet.")
+        return
+    for c in codes:
+        status = f"used by user #{c['used_by']}" if c.get("used_by") else "available"
+        print(f"  {c['code']}  ({status})")
 
 
 def cmd_whoami():
@@ -588,6 +622,12 @@ def dispatch(user_input: str, session: Session, export_dir: str) -> bool:
         return True
     if cmd == "WHOAMI":
         cmd_whoami()
+        return True
+    if cmd == "INVITE":
+        cmd_invite()
+        return True
+    if cmd == "INVITES":
+        cmd_invites()
         return True
 
     try:
