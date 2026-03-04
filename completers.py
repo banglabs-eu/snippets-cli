@@ -1,53 +1,45 @@
-"""prompt_toolkit completers backed by database queries."""
+"""prompt_toolkit completers backed by the API client."""
 
 import re
 from prompt_toolkit.completion import Completer, Completion
-import db
+import client
 
 
 class SourceCompleter(Completer):
-    def __init__(self, conn):
-        self.conn = conn
-
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor.strip()
         if text:
-            sources = db.search_sources(self.conn, text)
+            sources = client.search_sources(text)
         else:
-            sources = db.get_recent_sources(self.conn)
+            sources = client.get_recent_sources()
         for s in sources:
             yield Completion(s["name"], start_position=-len(text),
                              display_meta=f'id:{s["id"]}')
 
 
 class TagCompleter(Completer):
-    def __init__(self, conn):
-        self.conn = conn
-
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor.strip()
         # Handle comma-separated: complete only the last segment
         if "," in text:
             parts = text.rsplit(",", 1)
             prefix = parts[1].strip()
-            already_typed = len(parts[1]) - len(parts[1].lstrip())
             start_pos = -len(prefix)
         else:
             prefix = text
             start_pos = -len(text)
 
         if prefix:
-            tags = db.search_tags(self.conn, prefix)
+            tags = client.search_tags(prefix)
         else:
-            tags = db.get_recent_tags(self.conn)
+            tags = client.get_recent_tags()
         for t in tags:
             yield Completion(t["name"], start_position=start_pos)
 
 
 class NoteTagCompleter(Completer):
     """Completer limited to tags on a specific note."""
-    def __init__(self, conn, note_id):
-        self.conn = conn
+    def __init__(self, note_id):
         self.note_id = note_id
 
     def get_completions(self, document, complete_event):
@@ -59,22 +51,19 @@ class NoteTagCompleter(Completer):
             prefix = text
             start_pos = -len(text)
 
-        tags = db.get_tags_for_note(self.conn, self.note_id)
+        tags = client.get_tags_for_note(self.note_id)
         for t in tags:
             if t["name"].startswith(prefix.lower()):
                 yield Completion(t["name"], start_position=start_pos)
 
 
 class AuthorCompleter(Completer):
-    def __init__(self, conn):
-        self.conn = conn
-
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor.strip()
         if text:
-            authors = db.search_authors(self.conn, text)
+            authors = client.search_authors(text)
         else:
-            authors = db.get_recent_authors(self.conn)
+            authors = client.get_recent_authors()
         seen = set()
         for a in authors:
             display = f'{a["last_name"]}, {a["first_name"]}'
@@ -85,58 +74,43 @@ class AuthorCompleter(Completer):
 
 
 class SourceTypeCompleter(Completer):
-    def __init__(self, conn):
-        self.conn = conn
-
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor.strip().lower()
-        types = db.get_source_types(self.conn)
+        types = client.get_source_types()
         for t in types:
             if t["name"].lower().startswith(text):
                 yield Completion(t["name"], start_position=-len(document.text_before_cursor))
 
 
 class PublisherCompleter(Completer):
-    def __init__(self, conn):
-        self.conn = conn
-
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor.strip()
-        pubs = db.search_publishers(self.conn, text) if text else []
+        pubs = client.search_publishers(text) if text else []
         for p in pubs:
             meta = f'({p["city"]})' if p["city"] else ""
             yield Completion(p["name"], start_position=-len(text), display_meta=meta)
 
 
 class PublisherCityCompleter(Completer):
-    def __init__(self, conn):
-        self.conn = conn
-
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor.strip()
-        cities = db.search_publisher_cities(self.conn, text) if text else []
+        cities = client.search_publisher_cities(text) if text else []
         for c in cities:
             yield Completion(c, start_position=-len(text))
 
 
 class AuthorLastNameCompleter(Completer):
-    def __init__(self, conn):
-        self.conn = conn
-
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor.strip()
-        names = db.search_author_last_names(self.conn, text) if text else []
+        names = client.search_author_last_names(text) if text else []
         for n in names:
             yield Completion(n, start_position=-len(text))
 
 
 class AuthorFirstNameCompleter(Completer):
-    def __init__(self, conn):
-        self.conn = conn
-
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor.strip()
-        names = db.search_author_first_names(self.conn, text) if text else []
+        names = client.search_author_first_names(text) if text else []
         for n in names:
             yield Completion(n, start_position=-len(text))
 
@@ -154,9 +128,6 @@ _AUTHOR_CMDS = {"va"}
 
 class ReplCompleter(Completer):
     """Context-aware completer for the main REPL prompt."""
-
-    def __init__(self, conn):
-        self.conn = conn
 
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor
@@ -195,26 +166,26 @@ class ReplCompleter(Completer):
 
     def _complete_sources(self, prefix):
         if prefix:
-            sources = db.search_sources(self.conn, prefix)
+            sources = client.search_sources(prefix)
         else:
-            sources = db.get_recent_sources(self.conn)
+            sources = client.get_recent_sources()
         for s in sources:
             yield Completion(s["name"], start_position=-len(prefix),
                              display_meta=f'id:{s["id"]}')
 
     def _complete_tags(self, prefix):
         if prefix:
-            tags = db.search_tags(self.conn, prefix)
+            tags = client.search_tags(prefix)
         else:
-            tags = db.get_recent_tags(self.conn)
+            tags = client.get_recent_tags()
         for t in tags:
             yield Completion(t["name"], start_position=-len(prefix))
 
     def _complete_authors(self, prefix):
         if prefix:
-            authors = db.search_authors(self.conn, prefix)
+            authors = client.search_authors(prefix)
         else:
-            authors = db.get_recent_authors(self.conn)
+            authors = client.get_recent_authors()
         seen = set()
         for a in authors:
             display = f'{a["last_name"]}, {a["first_name"]}'

@@ -4,7 +4,7 @@ import os
 import re
 from pathlib import Path
 
-import db
+import client
 
 
 def slugify(text: str, max_len: int = 40) -> str:
@@ -18,7 +18,7 @@ def _ensure_export_dir(export_dir: str):
     Path(export_dir).mkdir(parents=True, exist_ok=True)
 
 
-def _format_note_block(conn, note: dict,
+def _format_note_block(note: dict,
                        tags: list[dict] | None = None,
                        show_source: bool = False) -> str:
     lines = []
@@ -31,16 +31,16 @@ def _format_note_block(conn, note: dict,
             meta_parts.append(f"t{note['locator_value']}")
 
     if tags is None:
-        tags = db.get_tags_for_note(conn, note["id"])
+        tags = client.get_tags_for_note(note["id"])
     if tags:
         tag_str = ", ".join(t["name"] for t in tags)
         meta_parts.append(f"Tags: {tag_str}")
 
     if show_source and note["source_id"]:
-        src = db.get_source(conn, note["source_id"])
+        src = client.get_source(note["source_id"])
         if src:
             meta_parts.append(f"Source: {src['name']}")
-            citation = db.build_citation(conn, note["source_id"])
+            citation = client.build_citation(note["source_id"])
             if citation:
                 meta_parts.append(f"Citation: {citation}")
 
@@ -53,13 +53,13 @@ def _format_note_block(conn, note: dict,
     return "\n".join(lines)
 
 
-def export_all(conn, export_dir: str) -> tuple[str, list[dict]]:
+def export_all(export_dir: str) -> tuple[str, list[dict]]:
     _ensure_export_dir(export_dir)
-    notes = db.get_all_notes(conn)
+    notes = client.get_all_notes()
 
     lines = []
     for note in notes:
-        lines.append(f"*{note['created_at']}*")
+        lines.append(f"**#{note['id']}** | *{note['created_at']}*")
         lines.append("")
         lines.append(note["body"])
         lines.append("")
@@ -72,15 +72,15 @@ def export_all(conn, export_dir: str) -> tuple[str, list[dict]]:
     return filepath, notes
 
 
-def export_by_source(conn, source_id: int, export_dir: str) -> tuple[str, list[dict]]:
+def export_by_source(source_id: int, export_dir: str) -> tuple[str, list[dict]]:
     _ensure_export_dir(export_dir)
-    src = db.get_source(conn, source_id)
+    src = client.get_source(source_id)
     if not src:
         raise ValueError(f"Source {source_id} not found")
 
-    notes = db.get_notes_by_source(conn, source_id)
-    tags_map = db.get_tags_for_notes(conn, [n["id"] for n in notes])
-    citation = db.build_citation(conn, source_id)
+    notes = client.get_notes_by_source(source_id)
+    tags_map = client.get_tags_for_notes([n["id"] for n in notes])
+    citation = client.build_citation(source_id)
 
     lines = [f"# {src['name']}", ""]
     if citation:
@@ -88,7 +88,7 @@ def export_by_source(conn, source_id: int, export_dir: str) -> tuple[str, list[d
     lines += [f"**{len(notes)} note(s)**", "", "---", ""]
 
     for note in notes:
-        lines.append(_format_note_block(conn, note, tags=tags_map.get(note["id"], [])))
+        lines.append(_format_note_block(note, tags=tags_map.get(note["id"], [])))
 
     slug = slugify(src["name"])
     filename = f"source_{source_id}_{slug}.md"
@@ -98,21 +98,19 @@ def export_by_source(conn, source_id: int, export_dir: str) -> tuple[str, list[d
     return filepath, notes
 
 
-def export_by_tag(conn, tag_id: int, export_dir: str) -> tuple[str, list[dict]]:
+def export_by_tag(tag_id: int, export_dir: str) -> tuple[str, list[dict]]:
     _ensure_export_dir(export_dir)
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM tags WHERE id = %s", (tag_id,))
-    tag = cur.fetchone()
+    tag = client.get_tag(tag_id)
     if not tag:
         raise ValueError(f"Tag {tag_id} not found")
 
-    notes = db.get_notes_by_tag(conn, tag_id)
-    tags_map = db.get_tags_for_notes(conn, [n["id"] for n in notes])
+    notes = client.get_notes_by_tag(tag_id)
+    tags_map = client.get_tags_for_notes([n["id"] for n in notes])
 
     lines = [f"# Tag: {tag['name']}", "", f"**{len(notes)} note(s)**", "", "---", ""]
 
     for note in notes:
-        lines.append(_format_note_block(conn, note, tags=tags_map.get(note["id"], []),
+        lines.append(_format_note_block(note, tags=tags_map.get(note["id"], []),
                                         show_source=True))
 
     slug = slugify(tag["name"])
@@ -123,26 +121,26 @@ def export_by_tag(conn, tag_id: int, export_dir: str) -> tuple[str, list[dict]]:
     return filepath, notes
 
 
-def export_by_author(conn, author_last: str, author_first: str,
+def export_by_author(author_last: str, author_first: str,
                      export_dir: str) -> tuple[str, list[dict]]:
     _ensure_export_dir(export_dir)
-    sources = db.get_sources_by_author(conn, author_last, author_first)
+    sources = client.get_sources_by_author(author_last, author_first)
 
     all_notes = []
     lines = [f"# Author: {author_last}, {author_first}", ""]
 
     for src in sources:
-        citation = db.build_citation(conn, src["id"])
+        citation = client.build_citation(src["id"])
         lines += [f"## {src['name']}", ""]
         if citation:
             lines += [f"*{citation}*", ""]
 
-        notes = db.get_notes_by_source(conn, src["id"])
+        notes = client.get_notes_by_source(src["id"])
         all_notes.extend(notes)
-        tags_map = db.get_tags_for_notes(conn, [n["id"] for n in notes])
+        tags_map = client.get_tags_for_notes([n["id"] for n in notes])
 
         for note in notes:
-            lines.append(_format_note_block(conn, note, tags=tags_map.get(note["id"], [])))
+            lines.append(_format_note_block(note, tags=tags_map.get(note["id"], [])))
 
     lines.insert(2, f"**{len(all_notes)} note(s) across {len(sources)} source(s)**")
     lines.insert(3, "")

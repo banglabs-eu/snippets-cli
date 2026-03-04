@@ -7,9 +7,9 @@ import subprocess
 
 from prompt_toolkit import prompt
 
-import psycopg2.errors
+import getpass
 
-import db
+import client
 import export
 from locator import parse_locator
 from session import Session
@@ -44,12 +44,12 @@ def _open_file(filepath: str):
             print(f.read())
 
 
-def _resolve_source(conn, arg: str) -> int | None:
+def _resolve_source(arg: str) -> int | None:
     if arg.isdigit():
-        src = db.get_source(conn, int(arg))
+        src = client.get_source(int(arg))
         if src:
             return src["id"]
-    matches = db.search_sources(conn, arg)
+    matches = client.search_sources(arg)
     exact = [m for m in matches if m["name"].lower() == arg.lower()]
     if exact:
         return exact[0]["id"]
@@ -63,13 +63,17 @@ def _resolve_source(conn, arg: str) -> int | None:
 def cmd_help():
     print("""
 Commands:
+  login              Log in to your account
+  register           Create a new account
+  logout             Log out (clear saved token)
   <text>             Just type — any unrecognized input is saved as a note
   s <name_or_id>     Set session source (Tab to autocomplete)
   s clear            Unset source — future notes have no source
   s<id> +t <tags>    Add tag(s) to note (e.g. s2 +t cheese, bread)
   s<id> -t <tags>    Remove tag(s) from note (e.g. s2 -t cheese)
+  del <id>           Delete a note (e.g. del 5)
   t <tags>           Tag the last note (Tab to autocomplete)
-  b                  Browse all notes (rendered markdown)
+  b / ls             Browse all notes (rendered markdown)
   ns <name>          New source for session (reuse existing or create via nse)
   nse                Source entry interview (MLA-ish fields)
   vs <name_or_id>    View/export notes by source
@@ -95,15 +99,15 @@ Example session:
 
 # ─── note creation (no command prefix) ───
 
-def cmd_note(conn, session: Session, text: str):
+def cmd_note(session: Session, text: str):
     text = text.strip()
     if not text:
         return
 
     body, loc_type, loc_value = parse_locator(text)
 
-    note_id = db.create_note(
-        conn, body,
+    note_id = client.create_note(
+        body,
         source_id=session.current_source_id,
         locator_type=loc_type,
         locator_value=loc_value,
@@ -112,7 +116,7 @@ def cmd_note(conn, session: Session, text: str):
 
     parts = [f"Saved note #{note_id}"]
     if session.current_source_id:
-        src = db.get_source(conn, session.current_source_id)
+        src = client.get_source(session.current_source_id)
         if src:
             parts.append(f'linked to "{src["name"]}"')
     if loc_type:
@@ -122,18 +126,26 @@ def cmd_note(conn, session: Session, text: str):
 
 # ─── s <name_or_id> (set source) ───
 
-def cmd_s(conn, session: Session, arg: str):
+def cmd_s(session: Session, arg: str):
     arg = arg.strip()
     if not arg:
+        sources = client.get_all_sources()
+        if sources:
+            print("Sources:")
+            for src in sources:
+                marker = "*" if src["id"] == session.current_source_id else " "
+                print(f"  {marker} {src['id']}. {src['name']}")
+        else:
+            print("No sources yet. Use: ns <name> to create one.")
         if session.current_source_id:
-            src = db.get_source(conn, session.current_source_id)
+            src = client.get_source(session.current_source_id)
             if src:
-                citation = db.build_citation(conn, session.current_source_id)
-                print(f'Current source: "{src["name"]}" (id:{src["id"]})')
+                citation = client.build_citation(session.current_source_id)
+                print(f'Current: "{src["name"]}" (id:{src["id"]})')
                 if citation:
                     print(f"  {citation}")
-                return
-        print("No source set. Use: s <name_or_id>")
+        else:
+            print("No source set. Use: s <name_or_id>")
         return
 
     if arg.lower() in ("clear", "none"):
@@ -141,25 +153,25 @@ def cmd_s(conn, session: Session, arg: str):
         print("Source cleared. Future notes will have no source.")
         return
 
-    source_id = _resolve_source(conn, arg)
+    source_id = _resolve_source(arg)
     if source_id is None:
         print(f'Source "{arg}" not found. Use ns <name> to create one.')
         return
 
     session.current_source_id = source_id
-    src = db.get_source(conn, source_id)
+    src = client.get_source(source_id)
     print(f'Source set: "{src["name"]}" (id:{source_id})')
 
-    sourceless = db.get_sourceless_notes(conn, session.session_note_ids)
+    sourceless = client.get_sourceless_notes(session.session_note_ids)
     if sourceless:
-        db.bulk_update_note_source(conn, sourceless, source_id)
+        client.bulk_update_note_source(sourceless, source_id)
         print(f"Linked {len(sourceless)} previous session note(s).")
 
 
 # ─── s<id> +t / -t (add/remove tags on a note) ───
 
-def cmd_note_add_tags(conn, note_id: int, tags_str: str):
-    note = db.get_note(conn, note_id)
+def cmd_note_add_tags(note_id: int, tags_str: str):
+    note = client.get_note(note_id)
     if not note:
         print(f"Note #{note_id} not found.")
         return
@@ -169,14 +181,14 @@ def cmd_note_add_tags(conn, note_id: int, tags_str: str):
         return
     added = []
     for name in names:
-        tag_id = db.get_or_create_tag(conn, name)
-        db.add_tag_to_note(conn, note_id, tag_id)
+        tag_id = client.get_or_create_tag(name)
+        client.add_tag_to_note(note_id, tag_id)
         added.append(name.lower())
     print(f"#{note_id} +t {', '.join(added)}")
 
 
-def cmd_note_remove_tags(conn, note_id: int, tags_str: str):
-    note = db.get_note(conn, note_id)
+def cmd_note_remove_tags(note_id: int, tags_str: str):
+    note = client.get_note(note_id)
     if not note:
         print(f"Note #{note_id} not found.")
         return
@@ -186,9 +198,9 @@ def cmd_note_remove_tags(conn, note_id: int, tags_str: str):
         return
     removed = []
     for name in names:
-        tag = db.get_tag_by_name(conn, name)
+        tag = client.get_tag_by_name(name)
         if tag:
-            db.remove_tag_from_note(conn, note_id, tag["id"])
+            client.remove_tag_from_note(note_id, tag["id"])
             removed.append(name.lower())
         else:
             print(f"Tag '{name}' not found.")
@@ -196,19 +208,31 @@ def cmd_note_remove_tags(conn, note_id: int, tags_str: str):
         print(f"#{note_id} -t {', '.join(removed)}")
 
 
+# ─── del <id> (delete a note) ───
+
+def cmd_note_delete(note_id: int):
+    note = client.get_note(note_id)
+    if not note:
+        print(f"Note #{note_id} not found.")
+        return
+    ok = client.delete_note(note_id)
+    if ok:
+        print(f"Deleted note #{note_id}:\n{note['body']}")
+
+
 # ─── t <tags> (tag last note) ───
 
-def cmd_t(conn, session: Session, tags_str: str):
+def cmd_t(session: Session, tags_str: str):
     if session.last_note_id is None:
         print("No note created this session yet.")
         return
-    cmd_note_add_tags(conn, session.last_note_id, tags_str)
+    cmd_note_add_tags(session.last_note_id, tags_str)
 
 
 # ─── b (browse all notes) ───
 
-def cmd_browse(conn, export_dir: str):
-    filepath, notes = export.export_all(conn, export_dir)
+def cmd_browse(export_dir: str):
+    filepath, notes = export.export_all(export_dir)
     if not notes:
         print("No notes yet.")
         return
@@ -217,20 +241,20 @@ def cmd_browse(conn, export_dir: str):
 
 # ─── ns <name> (new source for session) ───
 
-def cmd_ns(conn, session: Session, arg: str):
+def cmd_ns(session: Session, arg: str):
     name = arg.strip()
     if not name:
         print("Usage: ns <source_name>")
         return
 
-    source_id = _resolve_source(conn, name)
+    source_id = _resolve_source(name)
     if source_id:
         session.current_source_id = source_id
-        src = db.get_source(conn, source_id)
+        src = client.get_source(source_id)
         print(f'Source set: "{src["name"]}" (id:{source_id})')
         return
 
-    source_id = cmd_nse(conn, prefilled_name=name)
+    source_id = cmd_nse(prefilled_name=name)
     if source_id:
         session.current_source_id = source_id
         print(f'Source set: id:{source_id}')
@@ -238,7 +262,7 @@ def cmd_ns(conn, session: Session, arg: str):
 
 # ─── nse (source entry interview - the ONLY interactive mode) ───
 
-def cmd_nse(conn, prefilled_name: str | None = None) -> int | None:
+def cmd_nse(prefilled_name: str | None = None) -> int | None:
     print("=== Source Entry Interview ===")
 
     if prefilled_name:
@@ -255,20 +279,20 @@ def cmd_nse(conn, prefilled_name: str | None = None) -> int | None:
             return None
 
     # Source type
-    types = db.get_source_types(conn)
+    types = client.get_source_types()
     print("Source types:")
     for t in types:
         print(f"  {t['id']}. {t['name']}")
     try:
         type_input = prompt("Source type (name or #, Enter to skip): ",
-                           completer=SourceTypeCompleter(conn)).strip()
+                           completer=SourceTypeCompleter()).strip()
     except (EOFError, KeyboardInterrupt):
         type_input = ""
 
     source_type_id = None
     if type_input:
         if type_input.isdigit():
-            st = db.get_source_type(conn, int(type_input))
+            st = client.get_source_type(int(type_input))
             if st:
                 source_type_id = st["id"]
         else:
@@ -291,14 +315,14 @@ def cmd_nse(conn, prefilled_name: str | None = None) -> int | None:
     pages = ask("Pages (range)")
     extra_notes = ask("Extra notes")
 
-    pub_name = ask("Publisher name", completer=PublisherCompleter(conn))
+    pub_name = ask("Publisher name", completer=PublisherCompleter())
     publisher_id = None
     if pub_name:
-        pub_city = ask("Publisher city", completer=PublisherCityCompleter(conn))
-        publisher_id = db.get_or_create_publisher(conn, pub_name, pub_city)
+        pub_city = ask("Publisher city", completer=PublisherCityCompleter())
+        publisher_id = client.get_or_create_publisher(pub_name, pub_city)
 
-    source_id = db.create_source(
-        conn, name,
+    source_id = client.create_source(
+        name,
         source_type_id=source_type_id,
         year=year, url=url,
         accessed_date=accessed_date,
@@ -313,21 +337,21 @@ def cmd_nse(conn, prefilled_name: str | None = None) -> int | None:
     while True:
         try:
             last = prompt(f"  Author {order+1} last name: ",
-                         completer=AuthorLastNameCompleter(conn)).strip()
+                         completer=AuthorLastNameCompleter()).strip()
         except (EOFError, KeyboardInterrupt):
             break
         if not last:
             break
         try:
             first = prompt(f"  Author {order+1} first name: ",
-                          completer=AuthorFirstNameCompleter(conn)).strip()
+                          completer=AuthorFirstNameCompleter()).strip()
         except (EOFError, KeyboardInterrupt):
             first = ""
-        db.add_author(conn, source_id, first, last, order)
+        client.add_author(source_id, first, last, order)
         print(f"    Added: {last}, {first}")
         order += 1
 
-    citation = db.build_citation(conn, source_id)
+    citation = client.build_citation(source_id)
     if citation:
         print(f"Citation: {citation}")
 
@@ -336,39 +360,39 @@ def cmd_nse(conn, prefilled_name: str | None = None) -> int | None:
 
 # ─── vs <name_or_id> (view by source) ───
 
-def cmd_vs(conn, export_dir: str, arg: str):
+def cmd_vs(export_dir: str, arg: str):
     arg = arg.strip()
     if not arg:
         print("Usage: vs <source_name_or_id>")
         return
-    source_id = _resolve_source(conn, arg)
+    source_id = _resolve_source(arg)
     if source_id is None:
         print(f'Source "{arg}" not found.')
         return
-    filepath, notes = export.export_by_source(conn, source_id, export_dir)
+    filepath, notes = export.export_by_source(source_id, export_dir)
     print(f"Export: {filepath} ({len(notes)} notes)")
     _open_file(filepath)
 
 
 # ─── vt <tag> (view by tag) ───
 
-def cmd_vt(conn, export_dir: str, arg: str):
+def cmd_vt(export_dir: str, arg: str):
     arg = arg.strip()
     if not arg:
         print("Usage: vt <tag_name>")
         return
-    tag = db.get_tag_by_name(conn, arg)
+    tag = client.get_tag_by_name(arg)
     if not tag:
         print(f'Tag "{arg}" not found.')
         return
-    filepath, notes = export.export_by_tag(conn, tag["id"], export_dir)
+    filepath, notes = export.export_by_tag(tag["id"], export_dir)
     print(f"Export: {filepath} ({len(notes)} notes)")
     _open_file(filepath)
 
 
 # ─── va <Last, First> (view by author) ───
 
-def cmd_va(conn, export_dir: str, arg: str):
+def cmd_va(export_dir: str, arg: str):
     arg = arg.strip()
     if not arg:
         print("Usage: va <Last, First>")
@@ -381,7 +405,7 @@ def cmd_va(conn, export_dir: str, arg: str):
         author_last = arg
         author_first = ""
 
-    filepath, notes = export.export_by_author(conn, author_last, author_first, export_dir)
+    filepath, notes = export.export_by_author(author_last, author_first, export_dir)
     if not notes:
         print(f'No notes found for author "{arg}".')
         return
@@ -391,17 +415,66 @@ def cmd_va(conn, export_dir: str, arg: str):
 
 # ─── stadd <name> (add source type) ───
 
-def cmd_stadd(conn, arg: str):
+def cmd_stadd(arg: str):
     name = arg.strip()
     if not name:
         print("Usage: stadd <type_name>")
         return
     try:
-        tid = db.create_source_type(conn, name)
+        tid = client.create_source_type(name)
         print(f"Source type created: #{tid} - {name}")
-    except psycopg2.errors.UniqueViolation:
-        conn.rollback()
+    except client.ConflictError:
         print(f"Source type '{name}' already exists.")
+
+
+# ─── auth commands ───
+
+def cmd_login(session: Session):
+    try:
+        username = input("Username: ").strip()
+        password = getpass.getpass("Password: ")
+    except (EOFError, KeyboardInterrupt):
+        print("\nCancelled.")
+        return
+    if not username or not password:
+        print("Cancelled.")
+        return
+    try:
+        data = client.login(username, password)
+        session.reset()
+        print(f"Logged in as {data['username']}.")
+    except ValueError as e:
+        print(f"Login failed: {e}")
+
+
+def cmd_register(session: Session):
+    try:
+        username = input("Choose username: ").strip()
+        password = getpass.getpass("Choose password (min 6 chars): ")
+        confirm = getpass.getpass("Confirm password: ")
+    except (EOFError, KeyboardInterrupt):
+        print("\nCancelled.")
+        return
+    if not username or not password:
+        print("Cancelled.")
+        return
+    if password != confirm:
+        print("Passwords do not match.")
+        return
+    try:
+        data = client.register(username, password)
+        session.reset()
+        print(f"Registered and logged in as {data['username']}.")
+    except client.ConflictError:
+        print("Username already taken.")
+    except ValueError as e:
+        print(f"Registration failed: {e}")
+
+
+def cmd_logout(session: Session):
+    client.logout()
+    session.reset()
+    print("Logged out.")
 
 
 # ─── command parser ───
@@ -409,7 +482,7 @@ def cmd_stadd(conn, arg: str):
 _NOTE_TAG_RE = re.compile(r'^s(\d+)\s+([+-]t)\s+(.+)$', re.IGNORECASE)
 
 
-def dispatch(user_input: str, conn, session: Session, export_dir: str) -> bool:
+def dispatch(user_input: str, session: Session, export_dir: str) -> bool:
     """Parse and dispatch a command. Returns False if should exit."""
     stripped = user_input.strip()
     if not stripped:
@@ -425,12 +498,39 @@ def dispatch(user_input: str, conn, session: Session, export_dir: str) -> bool:
         cmd_help()
         return True
 
-    if cmd in ("B", "BROWSE"):
-        cmd_browse(conn, export_dir)
+    # Auth commands — always available
+    if cmd == "LOGIN":
+        cmd_login(session)
+        return True
+    if cmd == "REGISTER":
+        cmd_register(session)
+        return True
+    if cmd == "LOGOUT":
+        cmd_logout(session)
+        return True
+
+    # All other commands require authentication
+    if not client.is_authenticated():
+        print("Not logged in. Type 'login' or 'register' first.")
+        return True
+
+    try:
+        return _dispatch_data(stripped, cmd, session, export_dir)
+    except client.AuthExpiredError:
+        print("Session expired. Please 'login' again.")
+        client.clear_token()
+        session.reset()
+        return True
+
+
+def _dispatch_data(stripped: str, cmd: str, session: Session, export_dir: str) -> bool:
+    """Dispatch data commands (requires authentication)."""
+    if cmd in ("B", "BROWSE", "LS"):
+        cmd_browse(export_dir)
         return True
 
     if cmd == "NSE":
-        source_id = cmd_nse(conn)
+        source_id = cmd_nse()
         if source_id:
             session.current_source_id = source_id
             print(f'Source set: id:{source_id}')
@@ -443,9 +543,9 @@ def dispatch(user_input: str, conn, session: Session, export_dir: str) -> bool:
         op = m.group(2).lower()
         tags_str = m.group(3)
         if op == "+t":
-            cmd_note_add_tags(conn, note_id, tags_str)
+            cmd_note_add_tags(note_id, tags_str)
         else:
-            cmd_note_remove_tags(conn, note_id, tags_str)
+            cmd_note_remove_tags(note_id, tags_str)
         return True
 
     # Commands with arguments: split on first space
@@ -454,21 +554,26 @@ def dispatch(user_input: str, conn, session: Session, export_dir: str) -> bool:
     arg = parts[1] if len(parts) > 1 else ""
 
     if prefix == "S":
-        cmd_s(conn, session, arg)
+        cmd_s(session, arg)
     elif prefix == "T":
-        cmd_t(conn, session, arg)
+        cmd_t(session, arg)
     elif prefix == "NS":
-        cmd_ns(conn, session, arg)
+        cmd_ns(session, arg)
     elif prefix == "VS":
-        cmd_vs(conn, export_dir, arg)
+        cmd_vs(export_dir, arg)
     elif prefix == "VT":
-        cmd_vt(conn, export_dir, arg)
+        cmd_vt(export_dir, arg)
     elif prefix == "VA":
-        cmd_va(conn, export_dir, arg)
+        cmd_va(export_dir, arg)
     elif prefix == "STADD":
-        cmd_stadd(conn, arg)
+        cmd_stadd(arg)
+    elif prefix == "DEL":
+        if not arg.isdigit():
+            print("Usage: del <note_id>")
+        else:
+            cmd_note_delete(int(arg))
     else:
         # No recognized command — treat entire line as a note
-        cmd_note(conn, session, stripped)
+        cmd_note(session, stripped)
 
     return True
