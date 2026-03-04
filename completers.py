@@ -126,6 +126,14 @@ _TAG_CMDS = {"t", "vt"}
 _AUTHOR_CMDS = {"va"}
 
 
+_CMDS_UNAUTH = ["help", "login", "register", "exit", "quit"]
+_CMDS_AUTH = _CMDS_UNAUTH + [
+    "logout", "change_password", "passwd", "whoami",
+    "s", "t", "ns", "nse", "vs", "vt", "va", "stadd", "del",
+    "find", "f", "e", "edit", "b", "browse", "ls",
+]
+
+
 class ReplCompleter(Completer):
     """Context-aware completer for the main REPL prompt."""
 
@@ -133,6 +141,15 @@ class ReplCompleter(Completer):
         text = document.text_before_cursor
         stripped = text.lstrip()
         if not stripped:
+            return
+
+        # If user is typing the first word (no spaces), complete command names
+        if " " not in stripped:
+            word = stripped.lower()
+            cmds = _CMDS_AUTH if client.is_authenticated() else _CMDS_UNAUTH
+            for cmd in cmds:
+                if cmd.startswith(word) and cmd != word:
+                    yield Completion(cmd, start_position=-len(stripped))
             return
 
         # s<id> +t tag1, tag2  — complete tags after the +t/-t

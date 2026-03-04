@@ -121,6 +121,25 @@ def export_by_tag(tag_id: int, export_dir: str) -> tuple[str, list[dict]]:
     return filepath, notes
 
 
+def export_search_results(query: str, notes: list[dict],
+                          export_dir: str) -> str:
+    _ensure_export_dir(export_dir)
+    tags_map = client.get_tags_for_notes([n["id"] for n in notes])
+
+    lines = [f"# Search: {query}", "", f"**{len(notes)} note(s)**", "", "---", ""]
+
+    for note in notes:
+        lines.append(_format_note_block(note, tags=tags_map.get(note["id"], []),
+                                        show_source=True))
+
+    slug = slugify(query)
+    filename = f"search_{slug}.md"
+    filepath = os.path.join(export_dir, filename)
+    with open(filepath, "w") as f:
+        f.write("\n".join(lines))
+    return filepath
+
+
 def export_by_author(author_last: str, author_first: str,
                      export_dir: str) -> tuple[str, list[dict]]:
     _ensure_export_dir(export_dir)

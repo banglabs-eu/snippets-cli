@@ -103,6 +103,20 @@ def register(username: str, password: str) -> dict:
     return data
 
 
+def change_password(current_password: str, new_password: str):
+    r = _get().post("/change-password", json={
+        "current_password": current_password,
+        "new_password": new_password,
+    }, headers=_headers())
+    if r.status_code == 401:
+        raise ValueError("Current password is incorrect")
+    if r.status_code == 400:
+        raise ValueError(r.json().get("detail", "Bad request"))
+    if r.status_code == 429:
+        raise ValueError(r.json().get("detail", "Too many failed attempts"))
+    _check(r)
+
+
 def login(username: str, password: str) -> dict:
     r = _get().post("/login", json={"username": username, "password": password})
     if r.status_code == 401:
@@ -124,6 +138,10 @@ def create_note(body: str, source_id: int | None = None,
         "locator_value": locator_value,
     }, headers=_headers()))
     return r.json()["id"]
+
+
+def update_note_body(note_id: int, body: str):
+    _check(_get().patch(f"/notes/{note_id}/body", json={"body": body}, headers=_headers()))
 
 
 def update_note_source(note_id: int, source_id: int):
@@ -155,6 +173,11 @@ def get_notes_by_tag(tag_id: int) -> list[dict]:
 
 def get_notes_by_author(author_id: int) -> list[dict]:
     r = _check(_get().get("/notes", params={"author_id": author_id}, headers=_headers()))
+    return r.json()
+
+
+def search_notes(query: str) -> list[dict]:
+    r = _check(_get().get("/notes/search", params={"q": query}, headers=_headers()))
     return r.json()
 
 

@@ -66,13 +66,17 @@ Commands:
   login              Log in to your account
   register           Create a new account
   logout             Log out (clear saved token)
+  change_password    Change your password (alias: passwd)
+  whoami             Show current logged-in username
   <text>             Just type — any unrecognized input is saved as a note
   s <name_or_id>     Set session source (Tab to autocomplete)
   s clear            Unset source — future notes have no source
   s<id> +t <tags>    Add tag(s) to note (e.g. s2 +t cheese, bread)
   s<id> -t <tags>    Remove tag(s) from note (e.g. s2 -t cheese)
+  e / edit <id>      Edit a note (arrow keys to modify, Enter to save)
   del <id>           Delete a note (e.g. del 5)
   t <tags>           Tag the last note (Tab to autocomplete)
+  find / f <query>   Search notes by text (case-insensitive)
   b / ls             Browse all notes (rendered markdown)
   ns <name>          New source for session (reuse existing or create via nse)
   nse                Source entry interview (MLA-ish fields)
@@ -206,6 +210,29 @@ def cmd_note_remove_tags(note_id: int, tags_str: str):
             print(f"Tag '{name}' not found.")
     if removed:
         print(f"#{note_id} -t {', '.join(removed)}")
+
+
+# ─── e <id> (edit a note) ───
+
+def cmd_edit(note_id: int):
+    note = client.get_note(note_id)
+    if not note:
+        print(f"Note #{note_id} not found.")
+        return
+    try:
+        new_body = prompt("Edit note: ", default=note["body"])
+    except (EOFError, KeyboardInterrupt):
+        print("Cancelled.")
+        return
+    new_body = new_body.strip()
+    if not new_body:
+        print("Empty note — cancelled.")
+        return
+    if new_body == note["body"]:
+        print("No changes.")
+        return
+    client.update_note_body(note_id, new_body)
+    print(f"Updated note #{note_id}.")
 
 
 # ─── del <id> (delete a note) ───
@@ -413,6 +440,22 @@ def cmd_va(export_dir: str, arg: str):
     _open_file(filepath)
 
 
+# ─── find <query> (search notes by text) ───
+
+def cmd_find(export_dir: str, query: str):
+    query = query.strip()
+    if not query:
+        print("Usage: find <query>")
+        return
+    notes = client.search_notes(query)
+    if not notes:
+        print(f'No notes matching "{query}".')
+        return
+    filepath = export.export_search_results(query, notes, export_dir)
+    print(f'Found {len(notes)} note(s) matching "{query}"')
+    _open_file(filepath)
+
+
 # ─── stadd <name> (add source type) ───
 
 def cmd_stadd(arg: str):
@@ -471,6 +514,32 @@ def cmd_register(session: Session):
         print(f"Registration failed: {e}")
 
 
+def cmd_change_password():
+    try:
+        current = getpass.getpass("Current password: ")
+        new_pw = getpass.getpass("New password (min 6 chars): ")
+        confirm = getpass.getpass("Confirm new password: ")
+    except (EOFError, KeyboardInterrupt):
+        print("\nCancelled.")
+        return
+    if not current or not new_pw:
+        print("Cancelled.")
+        return
+    if new_pw != confirm:
+        print("Passwords do not match.")
+        return
+    try:
+        client.change_password(current, new_pw)
+        print("Password changed successfully.")
+    except ValueError as e:
+        print(f"Failed: {e}")
+
+
+def cmd_whoami():
+    data = client.me()
+    print(data["username"])
+
+
 def cmd_logout(session: Session):
     client.logout()
     session.reset()
@@ -512,6 +581,13 @@ def dispatch(user_input: str, session: Session, export_dir: str) -> bool:
     # All other commands require authentication
     if not client.is_authenticated():
         print("Not logged in. Type 'login' or 'register' first.")
+        return True
+
+    if cmd in ("CHANGE_PASSWORD", "PASSWD"):
+        cmd_change_password()
+        return True
+    if cmd == "WHOAMI":
+        cmd_whoami()
         return True
 
     try:
@@ -565,8 +641,15 @@ def _dispatch_data(stripped: str, cmd: str, session: Session, export_dir: str) -
         cmd_vt(export_dir, arg)
     elif prefix == "VA":
         cmd_va(export_dir, arg)
+    elif prefix in ("FIND", "F"):
+        cmd_find(export_dir, arg)
     elif prefix == "STADD":
         cmd_stadd(arg)
+    elif prefix in ("E", "EDIT"):
+        if not arg.isdigit():
+            print("Usage: e <note_id>")
+        else:
+            cmd_edit(int(arg))
     elif prefix == "DEL":
         if not arg.isdigit():
             print("Usage: del <note_id>")
