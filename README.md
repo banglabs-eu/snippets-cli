@@ -31,6 +31,8 @@ EXPORT_DIR=./exports                # Directory for generated Markdown exports
 python3 main.py
 ```
 
+On startup the CLI checks that the backend is reachable and validates any saved auth token. You must `login` or `register` before creating notes.
+
 ## Commands
 
 Everything is typed inline at the prompt. The only interactive mode is `nse` (source entry interview).
@@ -51,6 +53,9 @@ Everything is typed inline at the prompt. The only interactive mode is `nse` (so
 | `vt <tag>` | View/export notes by tag |
 | `va <Last, First>` | View/export notes by author |
 | `stadd <name>` | Add a new source type |
+| `login` | Log in to your account |
+| `register` | Create a new account |
+| `logout` | Log out (revokes token server-side) |
 | `help` | Show all commands |
 | `exit` / `quit` | Quit |
 
@@ -77,11 +82,21 @@ Append to the end of a note to automatically parse page/time references:
 
 The token is stripped from the stored body and shown in export metadata.
 
+### Multiline Notes
+
+Press **Ctrl+J** to insert a newline within a note. **Shift+Enter** also works in terminals with CSI u support (e.g. WezTerm, kitty, Ghostty).
+
 ## Example Session
 
 ```
 $ python3 main.py
 Snippets CLI ready. Type 'help' for commands.
+Not logged in. Type 'login' or 'register' to get started.
+
+snippets> login
+Username: demo
+Password:
+Logged in as demo.
 
 snippets> Knowledge is justified true belief p42
 Saved note #1 | page=42

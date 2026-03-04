@@ -7,6 +7,8 @@ import subprocess
 
 from prompt_toolkit import prompt
 
+import getpass
+
 import client
 import export
 from locator import parse_locator
@@ -61,6 +63,9 @@ def _resolve_source(arg: str) -> int | None:
 def cmd_help():
     print("""
 Commands:
+  login              Log in to your account
+  register           Create a new account
+  logout             Log out (clear saved token)
   <text>             Just type — any unrecognized input is saved as a note
   s <name_or_id>     Set session source (Tab to autocomplete)
   s clear            Unset source — future notes have no source
@@ -422,6 +427,56 @@ def cmd_stadd(arg: str):
         print(f"Source type '{name}' already exists.")
 
 
+# ─── auth commands ───
+
+def cmd_login(session: Session):
+    try:
+        username = input("Username: ").strip()
+        password = getpass.getpass("Password: ")
+    except (EOFError, KeyboardInterrupt):
+        print("\nCancelled.")
+        return
+    if not username or not password:
+        print("Cancelled.")
+        return
+    try:
+        data = client.login(username, password)
+        session.reset()
+        print(f"Logged in as {data['username']}.")
+    except ValueError as e:
+        print(f"Login failed: {e}")
+
+
+def cmd_register(session: Session):
+    try:
+        username = input("Choose username: ").strip()
+        password = getpass.getpass("Choose password (min 6 chars): ")
+        confirm = getpass.getpass("Confirm password: ")
+    except (EOFError, KeyboardInterrupt):
+        print("\nCancelled.")
+        return
+    if not username or not password:
+        print("Cancelled.")
+        return
+    if password != confirm:
+        print("Passwords do not match.")
+        return
+    try:
+        data = client.register(username, password)
+        session.reset()
+        print(f"Registered and logged in as {data['username']}.")
+    except client.ConflictError:
+        print("Username already taken.")
+    except ValueError as e:
+        print(f"Registration failed: {e}")
+
+
+def cmd_logout(session: Session):
+    client.logout()
+    session.reset()
+    print("Logged out.")
+
+
 # ─── command parser ───
 
 _NOTE_TAG_RE = re.compile(r'^s(\d+)\s+([+-]t)\s+(.+)$', re.IGNORECASE)
@@ -443,6 +498,33 @@ def dispatch(user_input: str, session: Session, export_dir: str) -> bool:
         cmd_help()
         return True
 
+    # Auth commands — always available
+    if cmd == "LOGIN":
+        cmd_login(session)
+        return True
+    if cmd == "REGISTER":
+        cmd_register(session)
+        return True
+    if cmd == "LOGOUT":
+        cmd_logout(session)
+        return True
+
+    # All other commands require authentication
+    if not client.is_authenticated():
+        print("Not logged in. Type 'login' or 'register' first.")
+        return True
+
+    try:
+        return _dispatch_data(stripped, cmd, session, export_dir)
+    except client.AuthExpiredError:
+        print("Session expired. Please 'login' again.")
+        client.clear_token()
+        session.reset()
+        return True
+
+
+def _dispatch_data(stripped: str, cmd: str, session: Session, export_dir: str) -> bool:
+    """Dispatch data commands (requires authentication)."""
     if cmd in ("B", "BROWSE", "LS"):
         cmd_browse(export_dir)
         return True
