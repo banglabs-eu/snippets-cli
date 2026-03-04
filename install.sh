@@ -26,6 +26,10 @@ warn()  { printf "${YELLOW}%s${RESET}\n" "$*"; }
 error() { printf "${RED}%s${RESET}\n" "$*" >&2; exit 1; }
 dim()   { printf "${DIM}%s${RESET}\n" "$*"; }
 
+# ── OS detection ──
+
+OS="$(uname -s)"
+
 # Read user input even when piped from curl
 ask() {
   printf "${CYAN}%s${RESET}" "$1"
@@ -49,7 +53,13 @@ echo ""
 
 # ── Prerequisites ──
 
-command -v git >/dev/null 2>&1 || error "git is required but not installed."
+if ! command -v git >/dev/null 2>&1; then
+  if [ "$OS" = "Darwin" ]; then
+    error "git is required but not installed. Run: brew install git  or  xcode-select --install"
+  else
+    error "git is required but not installed. Install it with your package manager (e.g. apt install git)."
+  fi
+fi
 
 PYTHON=""
 for py in python3 python; do
@@ -61,7 +71,13 @@ for py in python3 python; do
     fi
   fi
 done
-[ -n "$PYTHON" ] || error "Python 3.10+ is required but not found."
+if [ -z "$PYTHON" ]; then
+  if [ "$OS" = "Darwin" ]; then
+    error "Python 3.10+ is required but not found. Run: brew install python@3.12"
+  else
+    error "Python 3.10+ is required but not found. Install it with your package manager (e.g. apt install python3)."
+  fi
+fi
 
 dim "Using $($PYTHON --version)"
 
@@ -112,7 +128,13 @@ BACKEND_URL=""
 if [ "$SELF_HOST" = true ]; then
   # ── Self-host: Docker + Backend ──
 
-  command -v docker >/dev/null 2>&1 || error "Docker is required for self-hosting. Install it from https://docs.docker.com/get-docker/"
+  if ! command -v docker >/dev/null 2>&1; then
+    if [ "$OS" = "Darwin" ]; then
+      error "Docker is required for self-hosting. Install Docker Desktop for Mac: https://docs.docker.com/desktop/install/mac-install/"
+    else
+      error "Docker is required for self-hosting. Install it from https://docs.docker.com/get-docker/"
+    fi
+  fi
   docker compose version >/dev/null 2>&1 || error "Docker Compose v2 is required. Update Docker or install the compose plugin."
 
   echo ""
