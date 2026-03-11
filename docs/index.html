@@ -30,17 +30,17 @@
 <!-- Navigation -->
 <nav class="nav" id="nav">
   <div class="nav-inner">
-    <a href="#hero" class="nav-logo">
+    <a href="https://snippets.eu" class="nav-logo">
       <span class="logo-mark">{S}</span>
       <span class="logo-text">cli.snippets</span>
     </a>
     <div class="nav-links" id="nav-links">
       <a href="#hero">Try It</a>
+      <a href="#setup">Setup</a>
       <a href="#features">Features</a>
       <a href="#commands">Commands</a>
       <a href="#schema">Schema</a>
       <a href="#architecture">Architecture</a>
-      <a href="#setup">Setup</a>
       <a href="cheatsheet.html" target="_blank">Cheatsheet</a>
     </div>
     <div class="nav-actions">
@@ -91,177 +91,9 @@
   </div>
 </section>
 
-<!-- Features -->
-<section id="features">
-  <span class="section-label fade-in">01 / Features</span>
-  <h2 class="section-title fade-in">Everything for structured note-taking</h2>
-  <p class="section-subtitle fade-in">Capture, cite, tag, search, and export &mdash; all from one prompt.</p>
-  <div class="features-grid stagger">
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#9889;</span>
-      <h3>Instant Capture</h3>
-      <p>Just type text at the prompt &mdash; any unrecognized input becomes a note. No commands to memorize for basic note-taking.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#128218;</span>
-      <h3>Source Citations</h3>
-      <p>Link notes to bibliographic sources with MLA-style citations, authors, publishers, and edition tracking.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#127991;</span>
-      <h3>Smart Tagging</h3>
-      <p>Tag notes with comma-separated labels. Autocomplete helps you reuse existing tags. Add or remove tags from any note.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#128278;</span>
-      <h3>Locator Tokens</h3>
-      <p>Append <code>p32</code> or <code>t1:23:45</code> to notes to automatically parse page and time references into structured metadata.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#128196;</span>
-      <h3>Markdown Export</h3>
-      <p>Export notes by source, tag, or author as formatted Markdown files. View inline with bat or less.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#8677;</span>
-      <h3>Tab Completion</h3>
-      <p>Context-aware autocomplete for commands, sources, tags, authors, and more. The REPL knows what you need.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#128269;</span>
-      <h3>Full-text Search</h3>
-      <p>Find notes by content with <code>find</code> or <code>f</code>. Results render as Markdown and open in your pager.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#9999;</span>
-      <h3>Inline Editing</h3>
-      <p>Edit any note in place with <code>e &lt;id&gt;</code>. Arrow keys to navigate, Enter to save. Tracks last-edited timestamps.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#128274;</span>
-      <h3>Multi-user Auth</h3>
-      <p>JWT login with invite-code registration. Per-user data isolation, password changes, and admin invite management.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#9992;</span>
-      <h3>Offline Mode</h3>
-      <p>Keep taking notes when the backend is unreachable. Notes are stored locally and automatically sync back when you reconnect.</p>
-    </div>
-    <div class="card feature-card fade-in">
-      <span class="feature-icon">&#128272;</span>
-      <h3>Encrypted Local Cache</h3>
-      <p>All local data &mdash; offline notes and autocomplete cache &mdash; is encrypted at rest with a password-derived key (PBKDF2 + Fernet).</p>
-    </div>
-  </div>
-</section>
-
-<!-- Commands -->
-<section id="commands">
-  <span class="section-label fade-in">02 / Commands</span>
-  <h2 class="section-title fade-in">Command Reference</h2>
-  <p class="section-subtitle fade-in">Every command available in the REPL. Click an example to try it in the terminal above.</p>
-
-  <div class="commands-toolbar fade-in">
-    <input type="text" class="commands-search" id="commands-search" placeholder="Search commands...">
-    <button class="filter-btn active" data-filter="all">All</button>
-    <button class="filter-btn" data-filter="notes">Notes</button>
-    <button class="filter-btn" data-filter="sources">Sources</button>
-    <button class="filter-btn" data-filter="tags">Tags</button>
-    <button class="filter-btn" data-filter="viewing">Viewing</button>
-    <button class="filter-btn" data-filter="system">System</button>
-  </div>
-
-  <div class="commands-grid" id="commands-grid"></div>
-</section>
-
-<!-- Schema -->
-<section id="schema">
-  <span class="section-label fade-in">03 / Schema</span>
-  <h2 class="section-title fade-in">Database Schema</h2>
-  <p class="section-subtitle fade-in">Seven PostgreSQL tables for notes, sources, authors, publishers, tags, and metadata.</p>
-  <div class="schema-container fade-in" id="schema-container">
-    <svg class="schema-svg" id="schema-svg"></svg>
-    <div class="schema-grid" id="schema-grid"></div>
-  </div>
-</section>
-
-<!-- Architecture -->
-<section id="architecture">
-  <span class="section-label fade-in">04 / Architecture</span>
-  <h2 class="section-title fade-in">Architecture</h2>
-  <p class="section-subtitle fade-in">Simple, linear data flow. CLI talks to a FastAPI backend over HTTP.</p>
-  <div class="arch-flow fade-in">
-    <div class="arch-row">
-      <div class="card arch-card entry">
-        <div class="filename">main.py</div>
-        <div class="filedesc">REPL entry point</div>
-      </div>
-    </div>
-    <div class="arch-arrow">&darr;</div>
-    <div class="arch-row">
-      <div class="card arch-card core">
-        <div class="filename">commands.py</div>
-        <div class="filedesc">Command dispatch &amp; logic</div>
-      </div>
-    </div>
-    <div class="arch-arrow">&darr;</div>
-    <div class="arch-row">
-      <div class="card arch-card data">
-        <div class="filename">client.py</div>
-        <div class="filedesc">HTTP API client</div>
-      </div>
-      <div class="card arch-card">
-        <div class="filename">export.py</div>
-        <div class="filedesc">Markdown export</div>
-      </div>
-      <div class="card arch-card">
-        <div class="filename">locator.py</div>
-        <div class="filedesc">Page/time parsing</div>
-      </div>
-      <div class="card arch-card">
-        <div class="filename">session.py</div>
-        <div class="filedesc">Session state</div>
-      </div>
-    </div>
-    <div class="arch-arrow">&darr;</div>
-    <div class="arch-row">
-      <div class="card arch-card">
-        <div class="filename">completers.py</div>
-        <div class="filedesc">Tab completers</div>
-      </div>
-      <div class="card arch-card">
-        <div class="filename">picker.py</div>
-        <div class="filedesc">Interactive note picker</div>
-      </div>
-    </div>
-    <div class="arch-arrow">&darr;</div>
-    <div class="arch-row">
-      <div class="card arch-card">
-        <div class="filename">offline.py</div>
-        <div class="filedesc">Local note storage &amp; sync</div>
-      </div>
-      <div class="card arch-card">
-        <div class="filename">cache.py</div>
-        <div class="filedesc">Encrypted autocomplete cache</div>
-      </div>
-      <div class="card arch-card">
-        <div class="filename">crypto.py</div>
-        <div class="filedesc">PBKDF2 + Fernet encryption</div>
-      </div>
-    </div>
-    <div class="arch-arrow">&darr;</div>
-    <div class="arch-row">
-      <div class="card arch-card external">
-        <div class="filename">Backend API</div>
-        <div class="filedesc">FastAPI + PostgreSQL</div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- Setup -->
 <section id="setup">
-  <span class="section-label fade-in">05 / Getting Started</span>
+  <span class="section-label fade-in">01 / Getting Started</span>
   <h2 class="section-title fade-in">One command to start taking notes</h2>
   <p class="section-subtitle fade-in">Install, connect, run.</p>
   <div class="setup-steps fade-in">
@@ -342,6 +174,174 @@
       </div>
     </div>
 
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <span class="section-label fade-in">02 / Features</span>
+  <h2 class="section-title fade-in">Everything for structured note-taking</h2>
+  <p class="section-subtitle fade-in">Capture, cite, tag, search, and export &mdash; all from one prompt.</p>
+  <div class="features-grid stagger">
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#9889;</span>
+      <h3>Instant Capture</h3>
+      <p>Just type text at the prompt &mdash; any unrecognized input becomes a note. No commands to memorize for basic note-taking.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#128218;</span>
+      <h3>Source Citations</h3>
+      <p>Link notes to bibliographic sources with MLA-style citations, authors, publishers, and edition tracking.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#127991;</span>
+      <h3>Smart Tagging</h3>
+      <p>Tag notes with comma-separated labels. Autocomplete helps you reuse existing tags. Add or remove tags from any note.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#128278;</span>
+      <h3>Locator Tokens</h3>
+      <p>Append <code>p32</code> or <code>t1:23:45</code> to notes to automatically parse page and time references into structured metadata.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#128196;</span>
+      <h3>Markdown Export</h3>
+      <p>Export notes by source, tag, or author as formatted Markdown files. View inline with bat or less.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#8677;</span>
+      <h3>Tab Completion</h3>
+      <p>Context-aware autocomplete for commands, sources, tags, authors, and more. The REPL knows what you need.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#128269;</span>
+      <h3>Full-text Search</h3>
+      <p>Find notes by content with <code>find</code> or <code>f</code>. Results render as Markdown and open in your pager.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#9999;</span>
+      <h3>Inline Editing</h3>
+      <p>Edit any note in place with <code>e &lt;id&gt;</code>. Arrow keys to navigate, Enter to save. Tracks last-edited timestamps.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#128274;</span>
+      <h3>Multi-user Auth</h3>
+      <p>JWT login with invite-code registration. Per-user data isolation, password changes, and admin invite management.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#9992;</span>
+      <h3>Offline Mode</h3>
+      <p>Keep taking notes when the backend is unreachable. Notes are stored locally and automatically sync back when you reconnect.</p>
+    </div>
+    <div class="card feature-card fade-in">
+      <span class="feature-icon">&#128272;</span>
+      <h3>Encrypted Local Cache</h3>
+      <p>All local data &mdash; offline notes and autocomplete cache &mdash; is encrypted at rest with a password-derived key (PBKDF2 + Fernet).</p>
+    </div>
+  </div>
+</section>
+
+<!-- Commands -->
+<section id="commands">
+  <span class="section-label fade-in">03 / Commands</span>
+  <h2 class="section-title fade-in">Command Reference</h2>
+  <p class="section-subtitle fade-in">Every command available in the REPL. Click an example to try it in the terminal above.</p>
+
+  <div class="commands-toolbar fade-in">
+    <input type="text" class="commands-search" id="commands-search" placeholder="Search commands...">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="notes">Notes</button>
+    <button class="filter-btn" data-filter="sources">Sources</button>
+    <button class="filter-btn" data-filter="tags">Tags</button>
+    <button class="filter-btn" data-filter="viewing">Viewing</button>
+    <button class="filter-btn" data-filter="system">System</button>
+  </div>
+
+  <div class="commands-grid" id="commands-grid"></div>
+</section>
+
+<!-- Schema -->
+<section id="schema">
+  <span class="section-label fade-in">04 / Schema</span>
+  <h2 class="section-title fade-in">Database Schema</h2>
+  <p class="section-subtitle fade-in">Seven PostgreSQL tables for notes, sources, authors, publishers, tags, and metadata.</p>
+  <div class="schema-container fade-in" id="schema-container">
+    <svg class="schema-svg" id="schema-svg"></svg>
+    <div class="schema-grid" id="schema-grid"></div>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section id="architecture">
+  <span class="section-label fade-in">05 / Architecture</span>
+  <h2 class="section-title fade-in">Architecture</h2>
+  <p class="section-subtitle fade-in">Simple, linear data flow. CLI talks to a FastAPI backend over HTTP.</p>
+  <div class="arch-flow fade-in">
+    <div class="arch-row">
+      <div class="card arch-card entry">
+        <div class="filename">main.py</div>
+        <div class="filedesc">REPL entry point</div>
+      </div>
+    </div>
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-row">
+      <div class="card arch-card core">
+        <div class="filename">commands.py</div>
+        <div class="filedesc">Command dispatch &amp; logic</div>
+      </div>
+    </div>
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-row">
+      <div class="card arch-card data">
+        <div class="filename">client.py</div>
+        <div class="filedesc">HTTP API client</div>
+      </div>
+      <div class="card arch-card">
+        <div class="filename">export.py</div>
+        <div class="filedesc">Markdown export</div>
+      </div>
+      <div class="card arch-card">
+        <div class="filename">locator.py</div>
+        <div class="filedesc">Page/time parsing</div>
+      </div>
+      <div class="card arch-card">
+        <div class="filename">session.py</div>
+        <div class="filedesc">Session state</div>
+      </div>
+    </div>
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-row">
+      <div class="card arch-card">
+        <div class="filename">completers.py</div>
+        <div class="filedesc">Tab completers</div>
+      </div>
+      <div class="card arch-card">
+        <div class="filename">picker.py</div>
+        <div class="filedesc">Interactive note picker</div>
+      </div>
+    </div>
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-row">
+      <div class="card arch-card">
+        <div class="filename">offline.py</div>
+        <div class="filedesc">Local note storage &amp; sync</div>
+      </div>
+      <div class="card arch-card">
+        <div class="filename">cache.py</div>
+        <div class="filedesc">Encrypted autocomplete cache</div>
+      </div>
+      <div class="card arch-card">
+        <div class="filename">crypto.py</div>
+        <div class="filedesc">PBKDF2 + Fernet encryption</div>
+      </div>
+    </div>
+    <div class="arch-arrow">&darr;</div>
+    <div class="arch-row">
+      <div class="card arch-card external">
+        <div class="filename">Backend API</div>
+        <div class="filedesc">FastAPI + PostgreSQL</div>
+      </div>
+    </div>
   </div>
 </section>
 
